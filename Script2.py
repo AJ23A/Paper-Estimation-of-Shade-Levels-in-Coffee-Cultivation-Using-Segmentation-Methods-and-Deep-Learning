@@ -26,7 +26,7 @@ def Apply_Green_Highlight(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     
     # Define the range of green color in HSV
-    lower_green = np.array([24, 40, 48])
+    lower_green = np.array([24, 40, 35])
     upper_green = np.array([90, 255, 255])
     
     # Create a mask for green color
@@ -43,70 +43,77 @@ def Apply_Green_Highlight(image):
     
     return highlighted_image, green_mask
 
-def Apply_TopHat(image):
-    # Define the kernel size for top hat
-    kernel_size = (8, 8)
+def Apply_TopHat(image, kernel_size):
+    # Crear un kernel circular para el filtro top hat
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
 
-    # Create a rectangular kernel
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
-    
-    # Apply the grayscale open operation as top hat
-    top_hat = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-    
+    # Aplicar la operación de "top hat"
+    top_hat = cv2.morphologyEx(image, cv2.MORPH_TOPHAT, kernel)
+
     return top_hat
-
+    
 def Apply_OpeningAndClosing(image, kernel_size):
     # Create a rectangular kernel
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
     
-    # Apply the closing operation
-    closed_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
-    
     # Apply the opening operation
-    opened_image = cv2.morphologyEx(closed_image, cv2.MORPH_OPEN, kernel)
+    opened_image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
     
-    return opened_image
-
-if __name__ == "__main__":
-    image_path = './Selection/Agricam_01F.JPG'
-
-    original_image = Image_Reading(image_path)
-    resized_image = cv2.resize(original_image, (800, 600))
-
-    # Apply the top hat filter
-    top_hat_image = Apply_TopHat(resized_image)
+    # Apply the closing operation
+    closed_image = cv2.morphologyEx(opened_image, cv2.MORPH_CLOSE, kernel)
     
-    # Apply opening and closing with a kernel size of (2, 2)
-    opening_closing_image = Apply_OpeningAndClosing(top_hat_image, (5, 5))
+    
+    return closed_image
 
-    # Apply green highlight to the opening and closing image
-    green_highlighted_image, green_mask = Apply_Green_Highlight(opening_closing_image)
-
-
+def First_Stage(resized_image):
+    green_highlighted_image, green_mask = Apply_Green_Highlight(resized_image)
     # Find contours in the green mask
     contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Set a threshold for minimum contour area to segment by volume
+    min_contour_area = 100  # Adjust this value according to your needs
+    # Create a black mask to draw the segmented objects
+    segment_mask = np.zeros_like(green_mask)
+    for contour in contours:
+        contour_area = cv2.contourArea(contour)
+        if contour_area >= min_contour_area:
+            cv2.drawContours(segment_mask, [contour], -1, 255, -1)
+    # Multiply segment_mask with the original image to visualize segmentation result
+    segmented_result = cv2.bitwise_and(resized_image, resized_image, mask=segment_mask)
+    return segmented_result
+
+def Second_Stage(segmented_result):
+    # Apply the top hat filter
+    top_hat_image = Apply_TopHat(segmented_result,(10, 10))
+    
+    # Apply opening and closing with a kernel size of (2, 2)
+    opening_closing_image = Apply_OpeningAndClosing(top_hat_image, 10)
+    
+    # Apply green highlight to the opening and closing image
+    green_highlighted_image2, green_mask2 = Apply_Green_Highlight(opening_closing_image)
+
+    # Find contours in the green mask
+    contours, _ = cv2.findContours(green_mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Set a threshold for minimum contour area to segment by volume
     min_contour_area = 500 #djust this value according to your needs
 
     # Create a black mask to draw the segmented objects
-    segment_mask = np.zeros_like(green_mask)
+    segment_mask2 = np.zeros_like(green_mask2)
 
     for contour in contours:
         contour_area = cv2.contourArea(contour)
         if contour_area >= min_contour_area:
-            cv2.drawContours(segment_mask, [contour], -1, 255, -1)
+            cv2.drawContours(segment_mask2, [contour], -1, 255, -1)
 
     # Multiply segment_mask with the original image to visualize segmentation result
-    segmented_result = cv2.bitwise_and(resized_image, resized_image, mask=segment_mask)
-
-    # Calculate the percentage of white and black pixels in the segment mask
-    total_pixels = segment_mask.shape[0] * segment_mask.shape[1] 
-    white_pixels = np.sum(segment_mask == 255)
-    black_pixels = total_pixels - white_pixels
-    shades_percentage = (white_pixels / total_pixels) * 100
-    no_shades_percentage = (black_pixels / total_pixels) * 100
+    segmented_result2 = cv2.bitwise_and(segmented_result, segmented_result, mask=segment_mask2)
     
+    return segment_mask2,segmented_result2,top_hat_image,opening_closing_image
+
+def Percentage_shades( segment_mask2,segmented_result2,top_hat_image,opening_closing_image):
+    total_pixels = segment_mask2.shape[0] * segment_mask2.shape[1] 
+    white_pixels = np.sum(segment_mask2 == 255)
+    shades_percentage = (white_pixels / total_pixels) * 100
     # Value of shades in square meters
     # Datos proporcionados
     resolution_horizontal = 3840  # Resolución horizontal de la imagen en píxeles
@@ -114,19 +121,34 @@ if __name__ == "__main__":
     focal_length_deg = 155         # Ángulo de apertura focal en grados
     drone_height_m = 28          # Altura del dron sobre el terreno en metros
     factor = calculate_area_per_pixel_factor(resolution_horizontal, resolution_vertical, focal_length_deg, drone_height_m)
-    
     shades_decimal= white_pixels * factor
     
     print(f"Shades[%]: {shades_percentage:.2f}%")
     print(f"Shades[\u33A1]: {shades_decimal:.2f}")
+        
+if __name__ == "__main__":
+
+    #Reading Image
+    original_image = Image_Reading('./Selection/Agricam_18F.JPG')
+    
+    #Resize
+    resized_image = cv2.resize(original_image, (800, 600))
+    
+    #First stage
+    #segmented_result= First_Stage(resized_image)
+    
+    #Second Stage
+    segment_mask2,segmented_result2,top_hat_image,opening_closing_image=Second_Stage(resized_image)  
+    
+    # Calculate the percentage of white and black pixels in the segment mask
+    Percentage_shades( segment_mask2,segmented_result2,top_hat_image,opening_closing_image)
 
     # Display the images
     cv2.imshow('Original Image', resized_image)
-    cv2.imshow('Top Hat - Image', top_hat_image)    
-    cv2.imshow('Green Highlighted Image', green_highlighted_image)
-    cv2.imshow('Green Mask', green_mask)
-    cv2.imshow('Segment Mask', segment_mask)
-    cv2.imshow('Segment result', segmented_result)
+    #cv2.imshow('Segmented by color', segmented_result)
+    cv2.imshow('Top Hat', top_hat_image)   
+    cv2.imshow('opening closing - Image', opening_closing_image)  
+    cv2.imshow('Segment mask', segment_mask2)  
+    cv2.imshow('Segment result2', segmented_result2)  
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-

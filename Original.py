@@ -26,7 +26,7 @@ def Apply_Green_Highlight(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     
     # Define the range of green color in HSV
-    lower_green = np.array([24, 40, 48])
+    lower_green = np.array([24, 40, 40])
     upper_green = np.array([90, 255, 255])
     
     # Create a mask for green color
@@ -43,51 +43,19 @@ def Apply_Green_Highlight(image):
     
     return highlighted_image, green_mask
 
-def Apply_TopHat(image):
-    # Define the kernel size for top hat
-    kernel_size = (8, 8)
-
-    # Create a rectangular kernel
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
-    
-    # Apply the grayscale open operation as top hat
-    top_hat = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-    
-    return top_hat
-
-def Apply_OpeningAndClosing(image, kernel_size):
-    # Create a rectangular kernel
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
-    
-    # Apply the closing operation
-    closed_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
-    
-    # Apply the opening operation
-    opened_image = cv2.morphologyEx(closed_image, cv2.MORPH_OPEN, kernel)
-    
-    return opened_image
-
 if __name__ == "__main__":
     image_path = './Selection/Agricam_01F.JPG'
 
     original_image = Image_Reading(image_path)
     resized_image = cv2.resize(original_image, (800, 600))
 
-    # Apply the top hat filter
-    top_hat_image = Apply_TopHat(resized_image)
-    
-    # Apply opening and closing with a kernel size of (2, 2)
-    opening_closing_image = Apply_OpeningAndClosing(top_hat_image, (5, 5))
-
-    # Apply green highlight to the opening and closing image
-    green_highlighted_image, green_mask = Apply_Green_Highlight(opening_closing_image)
-
+    green_highlighted_image, green_mask = Apply_Green_Highlight(resized_image)
 
     # Find contours in the green mask
     contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Set a threshold for minimum contour area to segment by volume
-    min_contour_area = 500 #djust this value according to your needs
+    min_contour_area = 500  # Adjust this value according to your needs
 
     # Create a black mask to draw the segmented objects
     segment_mask = np.zeros_like(green_mask)
@@ -122,11 +90,9 @@ if __name__ == "__main__":
 
     # Display the images
     cv2.imshow('Original Image', resized_image)
-    cv2.imshow('Top Hat - Image', top_hat_image)    
     cv2.imshow('Green Highlighted Image', green_highlighted_image)
     cv2.imshow('Green Mask', green_mask)
     cv2.imshow('Segment Mask', segment_mask)
     cv2.imshow('Segment result', segmented_result)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
