@@ -117,16 +117,34 @@ def Percentage_shades(segment_mask):
     print(f"Shades[%]: {shades_percentage:.2f}%")
     print(f"Shades[\u33A1]: {shades_decimal:.2f}")
 
-def Display_and_Save_Images(original_image, segmented_result, image_name):
-    cv2.imshow('Original Image', original_image)
-    cv2.imshow('Segment result', segmented_result)
+def Display_and_Save_Images(resized_image, gree_image1,green_mask1,top_hat_image,gree_image2,green_mask2,Apply_OpeningAndClosing_Image,Filtered_byArea_Image,  segmented_result, image_name):
+    #cv2.imshow('Original Image', original_image)
+    #cv2.imshow('Segment result', segmented_result)
 
     # Save the images to the "results" folder
     result_folder = "./results"
     os.makedirs(result_folder, exist_ok=True)
+    
+    
     original_image_path = os.path.join(result_folder, f"{image_name}_original.jpg")
+    gree_image1_image_path = os.path.join(result_folder, f"{image_name}_gree_image1.jpg")
+    green_mask1_image_path = os.path.join(result_folder, f"{image_name}_green_mask1.jpg")
+    top_hat_image_image_path = os.path.join(result_folder, f"{image_name}_top_hat.jpg")
+    gree_image2_image_path = os.path.join(result_folder, f"{image_name}_gree_image2.jpg")
+    green_mask2_image_path = os.path.join(result_folder, f"{image_name}_green_mask2.jpg")   
+    Apply_OpeningAndClosing_Image_image_path = os.path.join(result_folder, f"{image_name}_Apply_OpeningAndClosing.jpg")   
+    Filtered_byArea_Image_Image_image_path =os.path.join(result_folder, f"{image_name}_Filtered_byArea.jpg")  
     segmented_result_path = os.path.join(result_folder, f"{image_name}_segmented.jpg")
-    cv2.imwrite(original_image_path, original_image)
+    
+    
+    cv2.imwrite(original_image_path, resized_image)
+    cv2.imwrite(gree_image1_image_path, gree_image1)
+    cv2.imwrite(green_mask1_image_path, green_mask1)
+    cv2.imwrite(top_hat_image_image_path, top_hat_image)
+    cv2.imwrite(gree_image2_image_path, gree_image2)
+    cv2.imwrite(green_mask2_image_path, green_mask2)
+    cv2.imwrite(Apply_OpeningAndClosing_Image_image_path, Apply_OpeningAndClosing_Image)
+    cv2.imwrite(Filtered_byArea_Image_Image_image_path, Filtered_byArea_Image)
     cv2.imwrite(segmented_result_path, segmented_result)
     
     cv2.waitKey(1000)  # Display images for 1 second
@@ -153,16 +171,16 @@ if __name__ == "__main__":
         #Resize Image
         resized_image = cv2.resize(original_image, (800, 600))
         #Filtered by color
-        gree_image, green_mask = Apply_Green_Highlight(resized_image)
+        gree_image1, green_mask1 = Apply_Green_Highlight(resized_image)
         #Apply Top-Hat filter
-        top_hat_image = Apply_TopHat(gree_image)
+        top_hat_image = Apply_TopHat(gree_image1)
         #Green mask application
-        green_highlighted_image, green_mask = Apply_Green_Highlight(top_hat_image)
-        green_mask = Apply_OpeningAndClosing(green_mask, (15, 15), (10, 10))
+        gree_image2, green_mask2 = Apply_Green_Highlight(top_hat_image)
+        Apply_OpeningAndClosing_Image = Apply_OpeningAndClosing(green_mask2, (15, 15), (10, 10))
         #Segmentation by area
-        segment_mask = filter_objects_by_area(green_mask, 500)
-        segmented_result = cv2.bitwise_and(resized_image, resized_image, mask=segment_mask)
+        Filtered_byArea_Image = filter_objects_by_area(green_mask2, 500)
+        segmented_result = cv2.bitwise_and(resized_image, resized_image, mask=Filtered_byArea_Image)
         #Percentage by area
-        Percentage_shades(segment_mask)
+        Percentage_shades(Filtered_byArea_Image)
         #Results
-        Display_and_Save_Images(resized_image, segmented_result, image_name)
+        Display_and_Save_Images(resized_image, gree_image1,green_mask1,top_hat_image,gree_image2,green_mask2,Apply_OpeningAndClosing_Image,Filtered_byArea_Image,  segmented_result, image_name)
