@@ -5,7 +5,7 @@
 
 # 🛰️ About Me 🔭:
 
--   📃  [My resume](https://github.com/AJ23A/AJ23A/blob/master/ResearcherCV.pdf) (January 2024)
+-   📃  [My resume](https://github.com/AJ23A/AJ23A/blob/master/ResearcherCV.pdf)
 
 -   📫 How to reach me **jaldana.aguilar@ieee.org**
 
