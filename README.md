@@ -1,4 +1,4 @@
-# 📄Estimation of ShadeLevels in Coffee Cultivation Using Segmentation Methods and Deep Learning
+# 📄Estimation of Shade Levels in Coffee Cultivation Using Segmentation Methods and Deep Learning
 
 <h3 align="left">Author: Josue Aldana-Aguilar </h3>
 <p align="left">
