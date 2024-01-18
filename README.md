@@ -1,6 +1,6 @@
-# Thesis-Design-and-Simulation-of-a-COTS-Based-Electrical-Power-System-for-HABs
+# 📄 Estimation of ShadeLevels in Coffee Cultivation Using Segmentation Methods and Deep Learning
 
-<h3 align="left">Author: Josué Romeo Aldana Aguilar </h3>
+<h3 align="left">Author: Josue Aldana-Aguilar </h3>
 <p align="left">
 
 # 🛰️ About Me 🔭:
